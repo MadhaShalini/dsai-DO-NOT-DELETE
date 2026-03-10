@@ -7,15 +7,16 @@ from groq import Groq
 import sqlite3
 import datetime
 
-#from dotenv import load_dotenv
-#if os.path.exists('.env'):
-#    load_dotenv()
+# load environment variables from .env if present
+from dotenv import load_dotenv
+load_dotenv()
 
-# for AWS, do not run this because not using .env
-#os.environ["GROQ_API_KEY"] = ""
-#os.environ["GROQ_API_KEY"] = os.environ.get('GROQ_API_KEY')
+# make sure the key is available and initialize the client with it
+api_key = os.environ.get("GROQ_API_KEY")
+if not api_key:
+    raise RuntimeError("GROQ_API_KEY not set in environment; check your .env or export the variable")
 
-client = Groq()
+client = Groq(api_key=api_key)
 
 app = Flask(__name__)
 
@@ -46,6 +47,19 @@ def dbs_prediction():
     model = joblib.load("DBS_SGD_model.pkl")
     r = model.predict([[q]])
     return(render_template("dbs_prediction.html",r=r))
+
+@app.route("/text_inference",methods=["GET","POST"])
+def text_inference():
+    return(render_template("text_inference.html"))
+
+@app.route("/text_result",methods=["GET","POST"])
+def text_result():
+    q = request.form.get("q")
+    text_model = joblib.load("model.pkl")
+    vectorizer = joblib.load("vectorizer.pkl")
+    X_emb = vectorizer.transform([q])
+    r = text_model.predict(X_emb)
+    return(render_template("text_result.html",r=r[0]))
 
 @app.route("/chatbot",methods=["GET","POST"])
 def chatbot():
